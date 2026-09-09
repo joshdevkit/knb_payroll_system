@@ -57,8 +57,8 @@ export const navSections: NavSection[] = [
         label: "Deductions & Holidays",
         items: [
             {
-                label: "SSS Deductions",
-                href: "/sss-deductions",
+                label: "Cash Advances",
+                href: "/cash-advances",
                 icon: ReceiptText,
             },
             {

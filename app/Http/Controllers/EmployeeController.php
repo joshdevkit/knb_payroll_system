@@ -6,7 +6,6 @@ use App\Models\Category;
 use App\Models\Employee;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Inertia\Response;
 
 class EmployeeController extends Controller
@@ -43,12 +42,14 @@ class EmployeeController extends Controller
 
     public function destroy(Employee $employee): RedirectResponse
     {
-        DB::transaction(function () use ($employee) {
-            $employee->cashAdvances()->delete();
-            $employee->attendances()->delete();
-            $employee->payrollItems()->delete();
-            $employee->delete();
-        });
+        if ($employee->payrollItems()->exists()) {
+            return back()->with(
+                'error',
+                'This employee cannot be deleted because payroll history already exists.',
+            );
+        }
+
+        $employee->delete();
 
         return back()->with('success', 'Employee deleted successfully.');
     }

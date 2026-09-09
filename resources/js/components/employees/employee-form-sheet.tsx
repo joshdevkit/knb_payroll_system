@@ -12,7 +12,8 @@ import {
     SheetTitle,
 } from "@/components/ui/sheet";
 import { useEmployeeForm } from "@/hooks/employees/useEmployeeForm";
-import type { Category, Employee } from "@/types/employee";
+import type {  Employee } from "@/types/employee";
+import { Category } from "@/types/category";
 
 type Props = {
     open: boolean;

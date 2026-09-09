@@ -1,5 +1,5 @@
 import { Head, router, usePage } from "@inertiajs/react";
-import { MoreHorizontal, Pencil, Plus, Search, Trash2, UserRoundX } from "lucide-react";
+import { Pencil, Plus, Search, Trash2, UserRoundX } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,18 +16,10 @@ export default function Employees() {
 
     const filteredEmployees = useMemo(() => {
         const term = search.trim().toLowerCase();
-
         if (!term) return employees;
 
         return employees.filter((employee) =>
-            [
-                employee.employee_number,
-                employee.biometric_id,
-                employee.first_name,
-                employee.middle_name,
-                employee.last_name,
-                employee.category?.name,
-            ]
+            [employee.employee_number, employee.biometric_id, employee.first_name, employee.middle_name, employee.last_name, employee.category?.name]
                 .filter(Boolean)
                 .join(" ")
                 .toLowerCase()
@@ -65,17 +57,10 @@ export default function Employees() {
             <div className="space-y-6">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <p className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-                            Payroll
-                        </p>
-                        <h1 className="mt-1 font-display text-2xl font-bold sm:text-3xl">
-                            Employees
-                        </h1>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                            Manage employee records, employment details, and rates.
-                        </p>
+                        <p className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-primary">Payroll</p>
+                        <h1 className="mt-1 font-display text-2xl font-bold sm:text-3xl">Employees</h1>
+                        <p className="mt-1 text-sm text-muted-foreground">Manage employee records, employment details, and rates.</p>
                     </div>
-
                     <Button onClick={openCreate}>
                         <Plus className="mr-2 h-4 w-4" />
                         Add employee
@@ -84,25 +69,16 @@ export default function Employees() {
 
                 <div className="relative max-w-md">
                     <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                        value={search}
-                        onChange={(event) => setSearch(event.target.value)}
-                        placeholder="Search employees..."
-                        className="pl-9"
-                    />
+                    <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search employees..." className="pl-9" />
                 </div>
 
                 <section className="overflow-hidden rounded-lg border bg-card text-card-foreground">
                     {filteredEmployees.length === 0 ? (
                         <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
                             <UserRoundX className="h-9 w-9 text-muted-foreground" />
-                            <h2 className="mt-3 font-medium">
-                                {search ? "No employees found" : "No employees yet"}
-                            </h2>
+                            <h2 className="mt-3 font-medium">{search ? "No employees found" : "No employees yet"}</h2>
                             <p className="mt-1 text-sm text-muted-foreground">
-                                {search
-                                    ? "Try a different search term."
-                                    : "Add your first employee to get started."}
+                                {search ? "Try a different search term." : "Add your first employee to get started."}
                             </p>
                         </div>
                     ) : (
@@ -115,7 +91,7 @@ export default function Employees() {
                                         <th className="px-5 py-3 font-medium">Employment</th>
                                         <th className="px-5 py-3 font-medium">Rate</th>
                                         <th className="px-5 py-3 font-medium">Status</th>
-                                        <th className="w-16 px-3 py-3" />
+                                        <th className="w-20 px-3 py-3" />
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y">
@@ -126,16 +102,13 @@ export default function Employees() {
                                                     {employee.first_name} {employee.middle_name ? `${employee.middle_name} ` : ""}{employee.last_name}{employee.suffix ? `, ${employee.suffix}` : ""}
                                                 </div>
                                                 <div className="mt-0.5 text-xs text-muted-foreground">
-                                                    {employee.employee_number}
-                                                    {employee.biometric_id ? ` · Bio ${employee.biometric_id}` : ""}
+                                                    {employee.employee_number}{employee.biometric_id ? ` · Bio ${employee.biometric_id}` : ""}
                                                 </div>
                                             </td>
-                                            <td className="px-5 py-4 text-muted-foreground">
-                                                {employee.category?.name ?? "—"}
-                                            </td>
+                                            <td className="px-5 py-4 text-muted-foreground">{employee.category?.name ?? "—"}</td>
                                             <td className="px-5 py-4">
                                                 <div className="capitalize">{employee.employment_type}</div>
-                                                <div className="text-xs text-muted-foreground capitalize">{employee.rate_type}</div>
+                                                <div className="text-xs capitalize text-muted-foreground">{employee.rate_type}</div>
                                             </td>
                                             <td className="px-5 py-4 font-medium">
                                                 ₱{Number(employee.rate).toLocaleString("en-PH", { minimumFractionDigits: 2 })}
@@ -168,12 +141,10 @@ export default function Employees() {
                         <div className="w-full max-w-md rounded-xl border bg-popover p-6 shadow-xl">
                             <h2 className="font-medium">Delete employee?</h2>
                             <p className="mt-2 text-sm text-muted-foreground">
-                                This will remove {deleteTarget.first_name} {deleteTarget.last_name} and related cash advance, attendance, and payroll item records.
+                                If payroll history exists, the employee will be protected from deletion.
                             </p>
                             <div className="mt-6 flex justify-end gap-2">
-                                <Button variant="outline" onClick={() => setDeleteTarget(null)}>
-                                    Cancel
-                                </Button>
+                                <Button variant="outline" onClick={() => setDeleteTarget(null)}>Cancel</Button>
                                 <Button variant="destructive" onClick={deleteEmployee}>
                                     <Trash2 className="mr-2 h-4 w-4" />
                                     Delete

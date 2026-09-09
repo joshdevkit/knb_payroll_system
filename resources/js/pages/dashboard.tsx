@@ -1,7 +1,8 @@
 import { Head, Link, usePage } from '@inertiajs/react'
 import { ArrowUpRight, ClipboardClock, Users, WalletCards } from 'lucide-react'
+import type { ReactNode } from 'react'
 import { AppSidebar } from '@/components/layouts/app-sidebar'
-import { Button } from '@/components/ui/button'
+import { buttonVariants } from '@/components/ui/button'
 
 export default function Dashboard() {
   const { auth } = usePage<{ auth?: { user?: { name?: string } } }>().props
@@ -12,9 +13,7 @@ export default function Dashboard() {
       <Head title="Dashboard" />
       <AppSidebar>
         <header className="flex h-14 items-center justify-between border-b px-4 md:px-6">
-          <div>
-            <h1 className="text-sm font-semibold">Dashboard</h1>
-          </div>
+          <h1 className="text-sm font-semibold">Dashboard</h1>
           <div className="text-sm text-muted-foreground">{userName}</div>
         </header>
 
@@ -27,27 +26,9 @@ export default function Dashboard() {
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <DashboardCard
-              title="Employees"
-              value="0"
-              description="Active employees"
-              icon={<Users className="size-4" />}
-              href="/employees"
-            />
-            <DashboardCard
-              title="Attendance"
-              value="0"
-              description="Records this period"
-              icon={<ClipboardClock className="size-4" />}
-              href="/attendance"
-            />
-            <DashboardCard
-              title="Payroll Runs"
-              value="0"
-              description="Current payroll runs"
-              icon={<WalletCards className="size-4" />}
-              href="/payroll"
-            />
+            <DashboardCard title="Employees" value="0" description="Active employees" icon={<Users className="size-4" />} href="/employees" />
+            <DashboardCard title="Attendance" value="0" description="Records this period" icon={<ClipboardClock className="size-4" />} href="/attendance" />
+            <DashboardCard title="Payroll Runs" value="0" description="Current payroll runs" icon={<WalletCards className="size-4" />} href="/payroll" />
           </div>
 
           <div className="rounded-xl border bg-card p-6 shadow-xs">
@@ -55,12 +36,10 @@ export default function Dashboard() {
             <p className="mt-1 text-sm text-muted-foreground">
               Payroll activity will appear here once employees and attendance records are added.
             </p>
-            <Button asChild className="mt-4">
-              <Link href="/employees">
-                Add employees
-                <ArrowUpRight />
-              </Link>
-            </Button>
+            <Link href="/employees" className={`${buttonVariants()} mt-4`}>
+              Add employees
+              <ArrowUpRight />
+            </Link>
           </div>
         </main>
       </AppSidebar>
@@ -78,7 +57,7 @@ function DashboardCard({
   title: string
   value: string
   description: string
-  icon: React.ReactNode
+  icon: ReactNode
   href: string
 }) {
   return (

@@ -1,16 +1,18 @@
 import { Head, router, usePage } from "@inertiajs/react";
-import { Pencil, Plus, Search, Trash2, UserRoundX } from "lucide-react";
+import { FolderCog, Pencil, Plus, Search, Trash2, UserRoundX } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import AuthenticatedLayout from "@/components/layouts/authenticated-layout";
 import { EmployeeFormSheet } from "@/components/employees/employee-form-sheet";
+import { CategoryManagerDialog } from "@/components/employees/category-manager-dialog";
 import type { Employee, EmployeePageProps } from "@/types/employee";
 
 export default function Employees() {
     const { employees, categories } = usePage<EmployeePageProps>().props;
     const [search, setSearch] = useState("");
     const [formOpen, setFormOpen] = useState(false);
+    const [categoriesOpen, setCategoriesOpen] = useState(false);
     const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
     const [deleteTarget, setDeleteTarget] = useState<Employee | null>(null);
 
@@ -61,10 +63,16 @@ export default function Employees() {
                         <h1 className="mt-1 font-display text-2xl font-bold sm:text-3xl">Employees</h1>
                         <p className="mt-1 text-sm text-muted-foreground">Manage employee records, employment details, and rates.</p>
                     </div>
-                    <Button onClick={openCreate}>
-                        <Plus className="mr-2 h-4 w-4" />
-                        Add employee
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        <Button variant="outline" onClick={() => setCategoriesOpen(true)}>
+                            <FolderCog className="mr-2 h-4 w-4" />
+                            Categories
+                        </Button>
+                        <Button onClick={openCreate}>
+                            <Plus className="mr-2 h-4 w-4" />
+                            Add employee
+                        </Button>
+                    </div>
                 </div>
 
                 <div className="relative max-w-md">
@@ -159,6 +167,12 @@ export default function Employees() {
                 open={formOpen}
                 onOpenChange={setFormOpen}
                 employee={editingEmployee}
+                categories={categories}
+            />
+
+            <CategoryManagerDialog
+                open={categoriesOpen}
+                onOpenChange={setCategoriesOpen}
                 categories={categories}
             />
         </AuthenticatedLayout>

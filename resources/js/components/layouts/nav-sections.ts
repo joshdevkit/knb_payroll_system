@@ -41,11 +41,6 @@ export const navSections: NavSection[] = [
                 icon: Users,
             },
             {
-                label: "Scheduling",
-                href: "/scheduling",
-                icon: CalendarDays,
-            },
-            {
                 label: "Payroll Register",
                 href: "/payroll",
                 icon: WalletCards,

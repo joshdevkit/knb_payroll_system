@@ -1,5 +1,5 @@
 import { Head, router, usePage } from "@inertiajs/react";
-import { FolderCog, Pencil, Plus, Search, Trash2, UserRoundX } from "lucide-react";
+import { CheckLine, FolderCog, Pencil, Plus, Search, Trash2, UserRoundX } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +7,7 @@ import AuthenticatedLayout from "@/components/layouts/authenticated-layout";
 import { EmployeeFormSheet } from "@/components/employees/employee-form-sheet";
 import { CategoryManagerDialog } from "@/components/employees/category-manager-dialog";
 import type { Employee, EmployeePageProps } from "@/types/employee";
-
+import { destroy } from "@/routes/employees";
 export default function Employees() {
     const { employees, categories } = usePage<EmployeePageProps>().props;
     const [search, setSearch] = useState("");
@@ -46,7 +46,7 @@ export default function Employees() {
     const deleteEmployee = () => {
         if (!deleteTarget) return;
 
-        router.delete(`/employees/${deleteTarget.id}`, {
+        router.delete((destroy(deleteTarget.id)), {
             preserveScroll: true,
             onSuccess: () => setDeleteTarget(null),
         });
@@ -64,6 +64,10 @@ export default function Employees() {
                         <p className="mt-1 text-sm text-muted-foreground">Manage employee records, employment details, and rates.</p>
                     </div>
                     <div className="flex items-center gap-2">
+                         <Button variant="outline">
+                            <CheckLine className="mr-2 h-4 w-4" />
+                            Import Attendance
+                        </Button>
                         <Button variant="outline" onClick={() => setCategoriesOpen(true)}>
                             <FolderCog className="mr-2 h-4 w-4" />
                             Categories

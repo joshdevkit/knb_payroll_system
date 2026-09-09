@@ -1,13 +1,10 @@
+import type { Category } from "@/types/category";
+
 export type EmploymentType = "regular" | "probationary" | "contractual";
 export type RateType = "daily" | "monthly";
 export type EmployeeStatus = "active" | "inactive";
 export type Sex = "male" | "female";
 export type CivilStatus = "single" | "married" | "widowed" | "separated";
-
-export type Category = {
-    id: string;
-    name: string;
-};
 
 export type Employee = {
     id: string;

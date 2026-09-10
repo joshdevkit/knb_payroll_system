@@ -68,20 +68,14 @@ export function LoginForm({
             {processing ? 'Logging in...' : 'Login'}
           </Button>
         </Field>
-        <Field>
+        {/* <Field>
           <a
             href="#"
             className="ml-auto text-center text-sm underline-offset-4 hover:underline"
           >
             Forgot your password?
           </a>
-          <FieldDescription className="text-center">
-            Don&apos;t have an account?{' '}
-            <a href="#" className="underline underline-offset-4">
-              Sign up
-            </a>
-          </FieldDescription>
-        </Field>
+        </Field> */}
       </FieldGroup>
     </form>
   )

@@ -6,20 +6,16 @@ import { Badge } from "@/components/ui/badge";
 import AuthenticatedLayout from "@/components/layouts/authenticated-layout";
 import { PayrollRunSheet } from "@/components/payroll/payroll-run-sheet";
 import type { PayrollRegisterPageProps, PayrollRun } from "@/types/payroll";
-
-function formatDate(value: string) {
-    return new Date(`${value}T00:00:00`).toLocaleDateString("en-PH", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-    });
-}
+import payroll from "@/routes/payroll";
+import { formatDate } from "@/lib/utils";
+import { DeleteDialog } from "@/components/ui/delete/delete-dialog";
 
 export default function PayrollRegister() {
     const { payrollRuns } = usePage<PayrollRegisterPageProps>().props;
     const [sheetOpen, setSheetOpen] = useState(false);
     const [editingRun, setEditingRun] = useState<PayrollRun | null>(null);
-
+    const [deleteTarget, setDeleteTarget] = useState<PayrollRun | null>(null);
+    const [deleting, setDeleting] = useState(false);
     const openCreate = () => {
         setEditingRun(null);
         setSheetOpen(true);
@@ -30,15 +26,27 @@ export default function PayrollRegister() {
         setSheetOpen(true);
     };
 
-    const deleteRun = (payrollRun: PayrollRun) => {
-        if (!window.confirm("Delete this payroll period?")) return;
-        router.delete(`/payroll-register/${payrollRun.id}`, {
+    const deleteRun = () => {
+        if (!deleteTarget) {
+            return;
+        }
+
+        setDeleting(true);
+
+        router.delete(payroll.destroy(deleteTarget.id), {
             preserveScroll: true,
+            onFinish: () => {
+                setDeleting(false);
+                setDeleteTarget(null);
+            },
         });
     };
 
     return (
-        <AuthenticatedLayout title="Payroll Register" description="Manage payroll periods and payroll records">
+        <AuthenticatedLayout
+            title="Payroll Register"
+            description="Manage payroll periods and payroll records"
+        >
             <Head title="Payroll Register" />
 
             <div className="space-y-6">
@@ -64,7 +72,9 @@ export default function PayrollRegister() {
                     {payrollRuns.length === 0 ? (
                         <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
                             <CalendarDays className="h-9 w-9 text-muted-foreground" />
-                            <h2 className="mt-3 font-medium">No payroll periods yet</h2>
+                            <h2 className="mt-3 font-medium">
+                                No payroll periods yet
+                            </h2>
                             <p className="mt-1 text-sm text-muted-foreground">
                                 Create your first payroll period to get started.
                             </p>
@@ -78,19 +88,36 @@ export default function PayrollRegister() {
                             <table className="w-full text-sm">
                                 <thead className="border-b bg-muted/40">
                                     <tr className="text-left text-xs text-muted-foreground">
-                                        <th className="px-5 py-3 font-medium">Period</th>
-                                        <th className="px-5 py-3 font-medium">Pay date</th>
-                                        <th className="px-5 py-3 font-medium">Employees</th>
-                                        <th className="px-5 py-3 font-medium">Status</th>
+                                        <th className="px-5 py-3 font-medium">
+                                            Period
+                                        </th>
+                                        <th className="px-5 py-3 font-medium">
+                                            Pay date
+                                        </th>
+                                        <th className="px-5 py-3 font-medium">
+                                            Employees
+                                        </th>
+                                        <th className="px-5 py-3 font-medium">
+                                            Status
+                                        </th>
                                         <th className="w-32 px-3 py-3" />
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y">
                                     {payrollRuns.map((payrollRun) => (
-                                        <tr key={payrollRun.id} className="transition-colors hover:bg-muted/30">
+                                        <tr
+                                            key={payrollRun.id}
+                                            className="transition-colors hover:bg-muted/30"
+                                        >
                                             <td className="px-5 py-4">
                                                 <div className="font-medium">
-                                                    {formatDate(payrollRun.period_start)} – {formatDate(payrollRun.period_end)}
+                                                    {formatDate(
+                                                        payrollRun.period_start,
+                                                    )}{" "}
+                                                    –{" "}
+                                                    {formatDate(
+                                                        payrollRun.period_end,
+                                                    )}
                                                 </div>
                                                 {payrollRun.remarks && (
                                                     <div className="mt-0.5 max-w-md truncate text-xs text-muted-foreground">
@@ -99,13 +126,23 @@ export default function PayrollRegister() {
                                                 )}
                                             </td>
                                             <td className="px-5 py-4 text-muted-foreground">
-                                                {formatDate(payrollRun.pay_date)}
+                                                {formatDate(
+                                                    payrollRun.pay_date,
+                                                )}
                                             </td>
                                             <td className="px-5 py-4 text-muted-foreground">
                                                 {payrollRun.items_count ?? 0}
                                             </td>
                                             <td className="px-5 py-4">
-                                                <Badge variant={payrollRun.status === "draft" ? "secondary" : "default"} className="capitalize">
+                                                <Badge
+                                                    variant={
+                                                        payrollRun.status ===
+                                                        "draft"
+                                                            ? "secondary"
+                                                            : "default"
+                                                    }
+                                                    className="capitalize"
+                                                >
                                                     {payrollRun.status}
                                                 </Badge>
                                             </td>
@@ -114,7 +151,13 @@ export default function PayrollRegister() {
                                                     <Button
                                                         variant="ghost"
                                                         size="icon-sm"
-                                                        onClick={() => router.get(`/payroll-register/${payrollRun.id}`)}
+                                                        onClick={() =>
+                                                            router.get(
+                                                                payroll.show(
+                                                                    payrollRun.id,
+                                                                ),
+                                                            )
+                                                        }
                                                         aria-label="View payroll"
                                                     >
                                                         <Eye className="h-4 w-4" />
@@ -122,7 +165,9 @@ export default function PayrollRegister() {
                                                     <Button
                                                         variant="ghost"
                                                         size="icon-sm"
-                                                        onClick={() => openEdit(payrollRun)}
+                                                        onClick={() =>
+                                                            openEdit(payrollRun)
+                                                        }
                                                         aria-label="Edit payroll"
                                                     >
                                                         <Pencil className="h-4 w-4" />
@@ -131,7 +176,11 @@ export default function PayrollRegister() {
                                                         variant="ghost"
                                                         size="icon-sm"
                                                         className="text-destructive hover:text-destructive"
-                                                        onClick={() => deleteRun(payrollRun)}
+                                                        onClick={() =>
+                                                            setDeleteTarget(
+                                                                payrollRun,
+                                                            )
+                                                        }
                                                         aria-label="Delete payroll"
                                                     >
                                                         <Trash2 className="h-4 w-4" />
@@ -151,6 +200,25 @@ export default function PayrollRegister() {
                 open={sheetOpen}
                 onOpenChange={setSheetOpen}
                 payrollRun={editingRun}
+            />
+
+            <DeleteDialog
+                open={!!deleteTarget}
+                title="Delete payroll period?"
+                description={
+                    deleteTarget
+                        ? `Are you sure you want to delete the payroll period ${formatDate(
+                              deleteTarget.period_start,
+                          )} – ${formatDate(deleteTarget.period_end)}? This action cannot be undone.`
+                        : undefined
+                }
+                loading={deleting}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setDeleteTarget(null);
+                    }
+                }}
+                onConfirm={deleteRun}
             />
         </AuthenticatedLayout>
     );

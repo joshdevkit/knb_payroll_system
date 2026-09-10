@@ -6,11 +6,9 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
-    'category_id',
     'period_start',
     'period_end',
     'pay_date',
@@ -21,6 +19,12 @@ class PayrollRun extends Model
 {
     use HasFactory, HasUuids;
 
+    protected $primaryKey = 'id';
+
+    protected $keyType = 'string';
+
+    public $incrementing = false;
+
     protected function casts(): array
     {
         return [
@@ -30,9 +34,15 @@ class PayrollRun extends Model
         ];
     }
 
-    public function category(): BelongsTo
+    protected static function boot(): void
     {
-        return $this->belongsTo(Category::class);
+        parent::boot();
+
+        static::creating(function (PayrollRun $payrollRun) {
+            if (! $payrollRun->id) {
+                $payrollRun->id = (string) \Illuminate\Support\Str::uuid();
+            }
+        });
     }
 
     public function items(): HasMany

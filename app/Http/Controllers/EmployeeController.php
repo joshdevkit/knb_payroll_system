@@ -65,12 +65,6 @@ class EmployeeController extends Controller
         return $request->validate([
             'category_id' => ['nullable', 'uuid', 'exists:categories,id'],
             'employee_number' => ['required', 'string', 'max:255', $employeeNumberRule],
-            'biometric_id' => [
-                'nullable',
-                'string',
-                'max:255',
-                'unique:employees,biometric_id' . ($employee ? ',' . $employee->id . ',id' : ''),
-            ],
             'first_name' => ['required', 'string', 'max:255'],
             'middle_name' => ['nullable', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],

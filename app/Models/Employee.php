@@ -13,7 +13,6 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 #[Fillable([
     'category_id',
     'employee_number',
-    'biometric_id',
     'first_name',
     'middle_name',
     'last_name',

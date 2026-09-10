@@ -45,25 +45,10 @@ export const navSections: NavSection[] = [
                 href: "/payroll",
                 icon: WalletCards,
             },
+            
         ],
     },
-
-    {
-        label: "Deductions & Holidays",
-        items: [
-            {
-                label: "Cash Advances",
-                href: "/cash-advances",
-                icon: ReceiptText,
-            },
-            {
-                label: "Holidays",
-                href: "/holidays",
-                icon: CalendarRange,
-            },
-        ],
-    },
-
+    
     {
         label: "System",
         items: [
@@ -71,6 +56,11 @@ export const navSections: NavSection[] = [
                 label: "Settings",
                 href: "/settings",
                 icon: Settings,
+            },
+            {
+                label: "Holidays",
+                href: "/holidays",
+                icon: CalendarRange,
             },
         ],
     },

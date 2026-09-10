@@ -74,14 +74,6 @@ export function EmployeeFormSheet({
                                         required
                                     />
                                 </Field>
-
-                                <Field label="Biometric ID">
-                                    <Input
-                                        value={data.biometric_id}
-                                        onChange={(e) => setField("biometric_id", e.target.value)}
-                                    />
-                                </Field>
-
                                 <Field label="Department">
                                     <select
                                         className={selectClass}

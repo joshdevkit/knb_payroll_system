@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { router } from "@inertiajs/react";
 import type { Employee, EmployeeFormData } from "@/types/employee";
+import { formatDateInput } from "@/lib/utils";
 
 const emptyForm: EmployeeFormData = {
     category_id: "",
@@ -33,7 +34,7 @@ const toForm = (employee: Employee): EmployeeFormData => ({
     middle_name: employee.middle_name ?? "",
     last_name: employee.last_name,
     suffix: employee.suffix ?? "",
-    birthday: employee.birthday ?? "",
+    birthday: formatDateInput(employee.birthday),
     place_of_birth: employee.place_of_birth ?? "",
     sex: employee.sex ?? "",
     civil_status: employee.civil_status ?? "",
@@ -41,7 +42,7 @@ const toForm = (employee: Employee): EmployeeFormData => ({
     home_address: employee.home_address ?? "",
     contact_number: employee.contact_number ?? "",
     email_address: employee.email_address ?? "",
-    hire_date: employee.hire_date ?? "",
+    hire_date: formatDateInput(employee.hire_date),
     employment_type: employee.employment_type,
     rate_type: employee.rate_type,
     rate: String(employee.rate),

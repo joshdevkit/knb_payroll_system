@@ -3,8 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\PayrollRun;
+use App\Services\CashAdvance\CashAdvanceService;
+use App\Services\Payroll\PayrollRunService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Response;
 
 class PayrollRunController extends Controller
@@ -27,8 +30,10 @@ class PayrollRunController extends Controller
         return inertia('payroll/create');
     }
 
-    public function store(Request $request): RedirectResponse
-    {
+    public function store(
+        Request $request,
+        PayrollRunService $service
+    ): RedirectResponse {
         $validated = $request->validate([
             'period_start' => ['required', 'date'],
             'period_end' => ['required', 'date', 'after_or_equal:period_start'],
@@ -39,53 +44,92 @@ class PayrollRunController extends Controller
         $validated['category_id'] = null;
         $validated['status'] = 'draft';
 
-        PayrollRun::create($validated);
+        $payroll = PayrollRun::create($validated);
 
-        return to_route('payroll-register.index')
-            ->with('success', 'Payroll period created successfully.');
+        $service->generate($payroll);
+
+        return to_route('payroll.index', $payroll)
+            ->with('success', 'Payroll generated successfully.');
     }
 
-    public function show(PayrollRun $payrollRun): Response
+    public function show(PayrollRun $payroll): Response
     {
-        $payrollRun->load([
-            'items.employee.category',
+        $payroll->load([
+            'items.employee',
         ]);
-
         return inertia('payroll/show', [
-            'payrollRun' => $payrollRun,
+            'payrollRun' => $payroll,
         ]);
     }
 
-    public function edit(PayrollRun $payrollRun): Response
+    public function edit(PayrollRun $payroll): Response
     {
         return inertia('payroll/edit', [
-            'payrollRun' => $payrollRun,
+            'payrollRun' => $payroll,
         ]);
     }
 
-    public function update(Request $request, PayrollRun $payrollRun): RedirectResponse
+    public function update(Request $request, PayrollRun $payroll): RedirectResponse
     {
         $validated = $request->validate([
             'period_start' => ['required', 'date'],
             'period_end' => ['required', 'date', 'after_or_equal:period_start'],
             'pay_date' => ['required', 'date'],
-            'remarks' => ['nullable', 'string'],
-            'status' => ['required', 'string', 'in:draft,processed,paid'],
         ]);
 
-        $validated['category_id'] = null;
+        $payroll->update($validated);
 
-        $payrollRun->update($validated);
 
-        return to_route('payroll-register.index')
+        return to_route('payroll.index')
             ->with('success', 'Payroll period updated successfully.');
     }
 
-    public function destroy(PayrollRun $payrollRun): RedirectResponse
-    {
-        $payrollRun->delete();
+    public function confirm(
+        PayrollRun $payrollRun,
+        CashAdvanceService $cashAdvanceService
+    ): RedirectResponse {
+        abort_if(
+            $payrollRun->status === 'confirmed',
+            422,
+            'Payroll has already been confirmed.'
+        );
 
-        return to_route('payroll-register.index')
+        DB::transaction(function () use (
+            $payrollRun,
+            $cashAdvanceService
+        ) {
+            $payrollRun->load([
+                'items.employee',
+            ]);
+
+            foreach ($payrollRun->items as $payrollItem) {
+                if ((float) $payrollItem->cash_advance <= 0) {
+                    continue;
+                }
+
+                $cashAdvanceService->recordPayrollDeduction(
+                    $payrollItem->employee,
+                    $payrollItem
+                );
+            }
+
+            $payrollRun->update([
+                'status' => 'confirmed',
+            ]);
+        });
+
+        return back()->with(
+            'success',
+            'Payroll confirmed successfully.'
+        );
+    }
+
+
+    public function destroy(PayrollRun $payroll): RedirectResponse
+    {
+        $payroll->delete();
+
+        return to_route('payroll.index')
             ->with('success', 'Payroll period deleted successfully.');
     }
 }

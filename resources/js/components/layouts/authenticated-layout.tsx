@@ -1,18 +1,18 @@
-import { usePage } from '@inertiajs/react';
-import { CheckCircle2, Menu, MoreVertical, X, XCircle } from 'lucide-react';
-import type { ReactNode } from 'react';
-import { useEffect, useState } from 'react';
-import Sidebar from '@/components/layouts/sidebar';
-import { Button } from '@/components/ui/button';
+import { usePage } from "@inertiajs/react";
+import { CheckCircle2, Menu, MoreVertical, X, XCircle } from "lucide-react";
+import type { ReactNode } from "react";
+import { useEffect, useState } from "react";
+import Sidebar from "@/components/layouts/sidebar";
+import { Button } from "@/components/ui/button";
 import {
     Sheet,
     SheetContent,
     SheetHeader,
     SheetTitle,
     SheetTrigger,
-} from '@/components/ui/sheet';
-import { cn } from '@/lib/utils';
-import type { Auth } from '@/types';
+} from "@/components/ui/sheet";
+import { cn } from "@/lib/utils";
+import type { Auth } from "@/types";
 
 export default function AuthenticatedLayout({
     title,
@@ -24,21 +24,24 @@ export default function AuthenticatedLayout({
     actions?: ReactNode;
     children: ReactNode;
 }) {
-    const page = usePage<{ auth: Auth; flash?: { success?: string | null; error?: string | null } }>();
+    const page = usePage<{
+        auth: Auth;
+        flash?: { success?: string | null; error?: string | null };
+    }>();
     const { auth, flash } = page.props;
     const currentPath =
-        typeof window !== 'undefined' ? window.location.pathname : page.url;
+        typeof window !== "undefined" ? window.location.pathname : page.url;
 
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [dismissedFlash, setDismissedFlash] = useState<string | null>(null);
     const [actionsOpen, setActionsOpen] = useState(false);
 
     useEffect(() => {
-        setSidebarOpen(window.matchMedia('(min-width: 1024px)').matches);
+        setSidebarOpen(window.matchMedia("(min-width: 1024px)").matches);
     }, []);
 
     useEffect(() => {
-        if (!window.matchMedia('(min-width: 1024px)').matches) {
+        if (!window.matchMedia("(min-width: 1024px)").matches) {
             setSidebarOpen(false);
         }
     }, [currentPath]);
@@ -53,8 +56,21 @@ export default function AuthenticatedLayout({
 
     const flashMessage = flash?.success ?? flash?.error ?? null;
     const flashIsError = !flash?.success && !!flash?.error;
-    const showFlash = flashMessage && flashMessage !== dismissedFlash;
+    const showFlash = !!flashMessage && flashMessage !== dismissedFlash;
 
+    useEffect(() => {
+        if (!flashMessage) {
+            return;
+        }
+
+        const timer = window.setTimeout(() => {
+            setDismissedFlash(flashMessage);
+        }, 2000);
+
+        return () => {
+            window.clearTimeout(timer);
+        };
+    }, [flashMessage]);
     return (
         <div className="flex h-svh overflow-hidden bg-background">
             <Sidebar
@@ -72,7 +88,7 @@ export default function AuthenticatedLayout({
                             onClick={() => setSidebarOpen((value) => !value)}
                             className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                             aria-label={
-                                sidebarOpen ? 'Hide sidebar' : 'Show sidebar'
+                                sidebarOpen ? "Hide sidebar" : "Show sidebar"
                             }
                         >
                             <Menu className="size-4" />
@@ -94,10 +110,10 @@ export default function AuthenticatedLayout({
                     {showFlash && (
                         <div
                             className={cn(
-                                'mb-4 flex items-start justify-between gap-3 rounded-lg border px-4 py-3 text-sm',
+                                "mb-4 flex items-start justify-between gap-3 rounded-lg border px-4 py-3 text-sm",
                                 flashIsError
-                                    ? 'border-destructive/30 bg-destructive/10 text-destructive'
-                                    : 'border-primary/20 bg-primary/5 text-foreground',
+                                    ? "border-destructive/30 bg-destructive/10 text-destructive"
+                                    : "border-primary/20 bg-primary/5 text-foreground",
                             )}
                         >
                             <div className="flex items-start gap-2">
@@ -110,9 +126,7 @@ export default function AuthenticatedLayout({
                             </div>
                             <button
                                 type="button"
-                                onClick={() =>
-                                    setDismissedFlash(flashMessage)
-                                }
+                                onClick={() => setDismissedFlash(flashMessage)}
                                 className="shrink-0 text-xs text-muted-foreground hover:text-foreground"
                                 aria-label="Dismiss"
                             >

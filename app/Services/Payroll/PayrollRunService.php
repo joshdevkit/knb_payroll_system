@@ -6,27 +6,17 @@ use App\Models\Attendance;
 use App\Models\Employee;
 use App\Models\PayrollItem;
 use App\Models\PayrollRun;
-use App\Services\CashAdvance\CashAdvanceService;
 use Illuminate\Support\Facades\DB;
 
 class PayrollRunService
 {
     public function __construct(
-        private HolidayService $holidayService,
-        private CashAdvanceService $cashAdvanceService
+        private HolidayService $holidayService
     ) {}
 
-    public function generate(
-        PayrollRun $payrollRun
-    ): PayrollRun {
-        return DB::transaction(function () use (
-            $payrollRun
-        ) {
-            /*
-             * Regenerating a draft payroll should replace
-             * its payroll items without touching cash
-             * advance balances.
-             */
+    public function generate(PayrollRun $payrollRun): PayrollRun
+    {
+        return DB::transaction(function () use ($payrollRun) {
             $payrollRun->items()->delete();
 
             $employees = Employee::query()
@@ -34,16 +24,9 @@ class PayrollRunService
                 ->get();
 
             foreach ($employees as $employee) {
-                $this->createItem(
-                    $payrollRun,
-                    $employee
-                );
+                $this->createItem($payrollRun, $employee);
             }
 
-            /*
-             * Generated payroll remains a draft until
-             * explicitly confirmed.
-             */
             $payrollRun->update([
                 'status' => 'draft',
             ]);
@@ -76,9 +59,7 @@ class PayrollRunService
 
         $tardyMinutes = $attendances->sum(
             fn (Attendance $attendance) =>
-                (int) (
-                    $attendance->tardy_minutes ?? 0
-                )
+                (int) ($attendance->tardy_minutes ?? 0)
         );
 
         $basicEarnings = $this->calculateBasicEarnings(
@@ -99,31 +80,16 @@ class PayrollRunService
                 )
         );
 
-        /*
-         * Basic earnings already contain the normal
-         * attendance earnings.
-         *
-         * Holiday pay is added separately.
-         */
         $totalEarnings =
             $basicEarnings
             - $tardy
             + $holidayPay;
 
-        /*
-         * READ ONLY.
-         *
-         * This does NOT modify cash advances.
-         */
-        $cashAdvance =
-            $this->cashAdvanceService
-                ->calculatePayrollDeduction(
-                    $employee
-                );
+        // Cash advances are selected manually on the draft payroll.
+        // Nothing is deducted merely because a payroll is generated.
+        $cashAdvance = 0;
 
-        $totalDeductions =
-            $tardy
-            + $cashAdvance;
+        $totalDeductions = $tardy;
 
         $netEarnings =
             $totalEarnings
@@ -132,22 +98,13 @@ class PayrollRunService
         return PayrollItem::create([
             'payroll_run_id' => $payrollRun->id,
             'employee_id' => $employee->id,
-
             'basic_earnings' => $basicEarnings,
             'tardy' => $tardy,
             'holiday_pay' => $holidayPay,
-
             'total_earnings' => $totalEarnings,
-
-            /*
-             * This is only the amount that WILL be
-             * deducted when the payroll is confirmed.
-             */
             'cash_advance' => $cashAdvance,
-
             'total_deductions' => $totalDeductions,
             'net_earnings' => $netEarnings,
-
             'days_present' => $daysPresent,
             'days_absent' => $daysAbsent,
             'tardy_minutes' => $tardyMinutes,
@@ -159,14 +116,10 @@ class PayrollRunService
         int $daysPresent
     ): float {
         if ($employee->rate_type === 'monthly') {
-            return (
-                (float) $employee->rate / 26
-            ) * $daysPresent;
+            return ((float) $employee->rate / 26) * $daysPresent;
         }
 
-        return (
-            (float) $employee->rate
-        ) * $daysPresent;
+        return (float) $employee->rate * $daysPresent;
     }
 
     private function calculateTardy(
@@ -177,24 +130,16 @@ class PayrollRunService
             return 0;
         }
 
-        $dailyRate = $this->getDailyRate(
-            $employee
-        );
-
-        // 8-hour workday.
-        $minuteRate =
-            $dailyRate / 8 / 60;
+        $dailyRate = $this->getDailyRate($employee);
+        $minuteRate = $dailyRate / 8 / 60;
 
         return $minuteRate * $tardyMinutes;
     }
 
-    private function getDailyRate(
-        Employee $employee
-    ): float {
+    private function getDailyRate(Employee $employee): float
+    {
         if ($employee->rate_type === 'monthly') {
-            return (
-                (float) $employee->rate / 26
-            );
+            return (float) $employee->rate / 26;
         }
 
         return (float) $employee->rate;

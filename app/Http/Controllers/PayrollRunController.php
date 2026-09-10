@@ -45,20 +45,32 @@ class PayrollRunController extends Controller
         $validated['status'] = 'draft';
 
         $payroll = PayrollRun::create($validated);
-
         $service->generate($payroll);
 
         return to_route('payroll.index', $payroll)
             ->with('success', 'Payroll generated successfully.');
     }
 
-    public function show(PayrollRun $payroll): Response
-    {
+    public function show(
+        PayrollRun $payroll,
+        CashAdvanceService $cashAdvanceService
+    ): Response {
         $payroll->load([
             'items.employee',
         ]);
+
+        $cashAdvanceBalances = $payroll->items
+            ->mapWithKeys(fn ($item) => [
+                $item->employee_id =>
+                    $cashAdvanceService->getOutstandingBalance(
+                        $item->employee
+                    ),
+            ])
+            ->all();
+
         return inertia('payroll/show', [
             'payrollRun' => $payroll,
+            'cashAdvanceBalances' => $cashAdvanceBalances,
         ]);
     }
 
@@ -79,12 +91,12 @@ class PayrollRunController extends Controller
 
         $payroll->update($validated);
 
-
         return to_route('payroll.index')
             ->with('success', 'Payroll period updated successfully.');
     }
 
     public function confirm(
+        Request $request,
         PayrollRun $payrollRun,
         CashAdvanceService $cashAdvanceService
     ): RedirectResponse {
@@ -94,23 +106,48 @@ class PayrollRunController extends Controller
             'Payroll has already been confirmed.'
         );
 
+        $validated = $request->validate([
+            'deductions' => ['nullable', 'array'],
+            'deductions.*' => ['nullable', 'numeric', 'min:0'],
+        ]);
+
         DB::transaction(function () use (
             $payrollRun,
-            $cashAdvanceService
+            $cashAdvanceService,
+            $validated
         ) {
             $payrollRun->load([
                 'items.employee',
             ]);
 
-            foreach ($payrollRun->items as $payrollItem) {
-                if ((float) $payrollItem->cash_advance <= 0) {
-                    continue;
-                }
+            $deductions = $validated['deductions'] ?? [];
 
-                $cashAdvanceService->recordPayrollDeduction(
-                    $payrollItem->employee,
-                    $payrollItem
+            foreach ($payrollRun->items as $payrollItem) {
+                $cashAdvance = max(
+                    0,
+                    (float) ($deductions[$payrollItem->id] ?? 0)
                 );
+
+                $totalDeductions =
+                    (float) $payrollItem->tardy
+                    + $cashAdvance;
+
+                $netEarnings =
+                    (float) $payrollItem->total_earnings
+                    - $totalDeductions;
+
+                $payrollItem->update([
+                    'cash_advance' => $cashAdvance,
+                    'total_deductions' => $totalDeductions,
+                    'net_earnings' => $netEarnings,
+                ]);
+
+                if ($cashAdvance > 0) {
+                    $cashAdvanceService->recordPayrollDeduction(
+                        $payrollItem->employee,
+                        $payrollItem->fresh()
+                    );
+                }
             }
 
             $payrollRun->update([
@@ -123,7 +160,6 @@ class PayrollRunController extends Controller
             'Payroll confirmed successfully.'
         );
     }
-
 
     public function destroy(PayrollRun $payroll): RedirectResponse
     {

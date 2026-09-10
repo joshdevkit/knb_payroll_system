@@ -12,9 +12,6 @@ use Illuminate\Validation\ValidationException;
 
 class CashAdvanceService
 {
-    /**
-     * Create a new cash advance for an employee.
-     */
     public function create(
         Employee $employee,
         float $amount,
@@ -22,15 +19,8 @@ class CashAdvanceService
         ?string $reason = null
     ): CashAdvance {
         $limit = $this->getLimit();
-
-        $outstandingBalance = $this->getOutstandingBalance(
-            $employee
-        );
-
-        $available = max(
-            0,
-            $limit - $outstandingBalance
-        );
+        $outstandingBalance = $this->getOutstandingBalance($employee);
+        $available = max(0, $limit - $outstandingBalance);
 
         if ($amount > $available) {
             throw ValidationException::withMessages([
@@ -51,9 +41,6 @@ class CashAdvanceService
         ]);
     }
 
-    /**
-     * Get the maximum cash advance allowed per cutoff.
-     */
     public function getLimit(): float
     {
         return (float) (
@@ -62,80 +49,41 @@ class CashAdvanceService
         );
     }
 
-    /**
-     * Get the employee's current outstanding cash advance balance.
-     */
-    public function getOutstandingBalance(
-        Employee $employee
-    ): float {
+    public function getOutstandingBalance(Employee $employee): float
+    {
         return (float) CashAdvance::query()
             ->where('employee_id', $employee->id)
-            ->whereIn('status', [
-                'active',
-                'partial',
-            ])
+            ->whereIn('status', ['active', 'partial'])
             ->where('balance', '>', 0)
             ->sum('balance');
     }
 
-    /**
-     * Get the amount still available for a new cash advance.
-     */
-    public function getAvailableAmount(
-        Employee $employee
-    ): float {
-        $limit = $this->getLimit();
-
-        $outstandingBalance = $this->getOutstandingBalance(
-            $employee
-        );
-
+    public function getAvailableAmount(Employee $employee): float
+    {
         return max(
             0,
-            $limit - $outstandingBalance
+            $this->getLimit() - $this->getOutstandingBalance($employee)
         );
     }
 
     /**
-     * Calculate the cash advance deduction for payroll.
-     *
-     * IMPORTANT:
-     * This method is READ-ONLY.
-     *
-     * It does not:
-     * - create payments
-     * - change balances
-     * - change statuses
-     *
-     * Therefore it is safe to use while generating
-     * or regenerating a draft payroll.
+     * Payroll generation must never automatically deduct a cash advance.
+     * The deduction is selected by the payroll user and recorded only when
+     * the payroll is confirmed.
      */
-    public function calculatePayrollDeduction(
-        Employee $employee
-    ): float {
-        return $this->getOutstandingBalance(
-            $employee
-        );
+    public function calculatePayrollDeduction(Employee $employee): float
+    {
+        return 0;
     }
 
     /**
-     * Record the actual payroll deduction.
-     *
-     * This should ONLY be called when the payroll
-     * is being confirmed.
+     * Record the amount selected on a confirmed payroll item.
      */
     public function recordPayrollDeduction(
         Employee $employee,
         PayrollItem $payrollItem
     ): float {
-        return DB::transaction(function () use (
-            $employee,
-            $payrollItem
-        ) {
-            /*
-             * Prevent duplicate deduction if this payroll
-             * has already created a payment.
-             */
+        return DB::transaction(function () use ($employee, $payrollItem) {
             $alreadyDeducted = CashAdvancePayment::query()
                 ->where('payroll_item_id', $payrollItem->id)
                 ->exists();
@@ -152,24 +100,26 @@ class CashAdvanceService
                 return 0;
             }
 
-            /*
-             * Get outstanding advances oldest first.
-             *
-             * lockForUpdate() prevents two confirmation
-             * processes from modifying the same balance
-             * simultaneously.
-             */
             $cashAdvances = CashAdvance::query()
                 ->where('employee_id', $employee->id)
-                ->whereIn('status', [
-                    'active',
-                    'partial',
-                ])
+                ->whereIn('status', ['active', 'partial'])
                 ->where('balance', '>', 0)
                 ->orderBy('advance_date')
                 ->orderBy('created_at')
                 ->lockForUpdate()
                 ->get();
+
+            $outstanding = (float) $cashAdvances->sum('balance');
+
+            if ($deductionAmount > $outstanding) {
+                throw ValidationException::withMessages([
+                    'cash_advance' => sprintf(
+                        'The selected cash advance deduction of ₱%s exceeds the employee\'s outstanding balance of ₱%s.',
+                        number_format($deductionAmount, 2),
+                        number_format($outstanding, 2)
+                    ),
+                ]);
+            }
 
             $remaining = $deductionAmount;
             $totalDeducted = 0;
@@ -180,19 +130,8 @@ class CashAdvanceService
                 }
 
                 $balance = (float) $cashAdvance->balance;
-
-                if ($balance <= 0) {
-                    continue;
-                }
-
-                /*
-                 * Never deduct more than the actual
-                 * outstanding balance.
-                 */
-                $paymentAmount = min(
-                    $balance,
-                    $remaining
-                );
+                $paymentAmount = min($balance, $remaining);
+                $newBalance = $balance - $paymentAmount;
 
                 CashAdvancePayment::create([
                     'cash_advance_id' => $cashAdvance->id,
@@ -202,16 +141,9 @@ class CashAdvanceService
                     'remarks' => 'Payroll deduction',
                 ]);
 
-                $newBalance = $balance - $paymentAmount;
-
                 $cashAdvance->update([
-                    'balance' => max(
-                        0,
-                        $newBalance
-                    ),
-                    'status' => $newBalance <= 0
-                        ? 'paid'
-                        : 'partial',
+                    'balance' => max(0, $newBalance),
+                    'status' => $newBalance <= 0 ? 'paid' : 'partial',
                 ]);
 
                 $remaining -= $paymentAmount;

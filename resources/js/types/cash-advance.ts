@@ -1,11 +1,9 @@
 import type { PageProps } from "@inertiajs/core";
 
 export type CashAdvanceStatus =
-    | "pending"
-    | "approved"
-    | "rejected"
-    | "paid"
-    | "cancelled";
+    | "active"
+    | "partial"
+    | "paid";
 
 export type CashAdvance = {
     id: string;
